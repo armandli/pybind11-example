@@ -9,6 +9,9 @@
 #include <sstream>
 #include <iostream>
 
+// simdjson enable production optimized code
+#define __OPTIMIZE__
+
 #include "date/date.h"
 #include "simdjson.h"
 #include "rapidjson/document.h"
@@ -113,6 +116,7 @@ s::unordered_map<s::string, s::vector<float>> parse_example_json2(const s::strin
     if (error) continue;
     s::vector<float> vec;
     for (sj::ondemand::value v : array){
+      //TODO: deal with infinity, NaN etc
       sj::ondemand::number num = v.get_number();
       sj::ondemand::number_type ty = num.get_number_type();
       switch (ty){
