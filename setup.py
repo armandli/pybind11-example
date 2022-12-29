@@ -25,11 +25,14 @@ setup(
     package_data={},
     data_files={},
     install_requires=[
+        'pytz',
         'pybind11',
         'scikit-learn',
     ],
     entry_points={
       'console_scripts':[
+          'test_datetime_to_epoch = senseis.test_datetime_to_epoch:main',
+          'test_json_parsing = senseis.test_json_parsing:main',
           'measure_summation = senseis.measure_summation:main',
           'measure_linear_regression = senseis.measure_linear_regression:main',
       ]

@@ -7,8 +7,8 @@ import pybind11_example as m
 
 def linear_regression(x, y):
   model = LinearRegression()
-  x = np.array(x).reshape(-1, 1)
-  y = np.array(y)
+  x = np.array(x, dtype=np.float32).reshape(-1, 1)
+  y = np.array(y, dtype=np.float32)
   model.fit(x, y)
   return (model.intercept_, model.coef_[0])
 
