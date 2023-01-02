@@ -49,7 +49,7 @@ s::pair<float,float> linear_regression(const s::vector<float>& x, const s::vecto
   float my = mean(y);
 
   float sxx = 0., sxy = 0.;
-  for (int i = 0; i < x.size(); ++i){
+  for (unsigned i = 0; i < x.size(); ++i){
     if (not isnan(x[i]) and not isnan(y[i])){
       sxy += x[i] * y[i];
       sxx += x[i] * x[i];
@@ -72,6 +72,13 @@ double datetime_to_epoch(s::string_view datetime_str, s::string_view format){
     s::cout << "Failed to convert " << datetime_str << " with format " << format << s::endl;
     return 0.;
   }
+}
+
+// by default it is timezone UTC
+s::string epoch_to_datetime(uint epoch, s::string_view format){
+  d::sys_seconds tp = c::time_point_cast<c::seconds>(c::system_clock::from_time_t(epoch));
+  s::string out = d::format(format.data(), tp);
+  return out;
 }
 
 // use rapidjson
@@ -166,6 +173,10 @@ PYBIND11_MODULE(pybind11_example, m){
 
   m.def("datetime_to_epoch", &datetime_to_epoch, R"pbdoc(
           convert datetime string to epoch
+  )pbdoc");
+
+  m.def("epoch_to_datetime", &epoch_to_datetime, R"pbdoc(
+          convert epoch to datetime string
   )pbdoc");
 
   m.def("parse_example_json1", &parse_example_json1, R"pbdoc(
