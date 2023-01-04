@@ -1,16 +1,15 @@
 #include <cassert>
+#include <cstddef>
 #include <cmath>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <chrono>
+#include <variant>
 #include <vector>
 #include <unordered_map>
 #include <sstream>
 #include <iostream>
-
-// simdjson enable production optimized code
-#define __OPTIMIZE__
 
 #include "date/date.h"
 #include "simdjson.h"
@@ -25,6 +24,8 @@ namespace c = s::chrono;
 namespace d = date;
 namespace sj = simdjson;
 namespace rj = rapidjson;
+
+using SimpleValueType = s::variant<s::string,double,int64_t,uint64_t,bool,s::nullptr_t>;
 
 float summation(const s::vector<float>& v){
   float s = 0.;
@@ -42,7 +43,7 @@ float mean(const s::vector<float>& v){
   return s / v.size();
 }
 
-s::pair<float,float> linear_regression(const s::vector<float>& x, const s::vector<float>& y){
+s::pair<float,float> linear_regression(const s::vector<float> x, const s::vector<float> y){
   s::pair<float, float> ret;
 
   float mx = mean(x);
@@ -111,7 +112,6 @@ s::unordered_map<s::string, s::vector<float>> parse_example_json2(const s::strin
   if (error) return ret;
   sj::ondemand::object obj; error = doc.get(obj);
   if (error) return ret;
-  int count = 0;
   for (auto field : obj){
     s::string_view key_view; error = field.unescaped_key().get(key_view);
     if (error) continue;
@@ -144,6 +144,63 @@ s::unordered_map<s::string, s::vector<float>> parse_example_json2(const s::strin
     }
     ret[key.data()] = vec;
   }
+  return ret;
+}
+
+// convert to map of multiple different values
+s::unordered_map<s::string, SimpleValueType> parse_example_json3(const s::string& jstr){
+  s::unordered_map<s::string, SimpleValueType> ret;
+  sj::padded_string pjstr(jstr);
+  sj::ondemand::document doc;
+  auto error = parser.iterate(pjstr).get(doc);
+  if (error) return ret;
+  sj::ondemand::object obj; error = doc.get(obj);
+  if (error) return ret;
+  for (auto field : obj){
+    s::string_view key_view; error = field.unescaped_key().get(key_view);
+    if (error) continue;
+    s::string key = {key_view.begin(), key_view.end()};
+
+    sj::ondemand::json_type ty = field.value().type();
+    switch (ty){
+    break; case sj::ondemand::json_type::string: {
+      //TODO: what if this is NaN ?
+      s::string_view value_view; error = field.value().get(value_view);
+      if (error) continue;
+      s::string value = {value_view.begin(), value_view.end()};
+      ret[key] = SimpleValueType(value);
+    }
+    break; case sj::ondemand::json_type::number: {
+      sj::ondemand::number num = field.value().get_number();
+      sj::ondemand::number_type nty = num.get_number_type();
+      switch (nty){
+      break; case sj::ondemand::number_type::signed_integer: {
+        int64_t val = num.get_int64();
+        ret[key] = SimpleValueType(val);
+      }
+      break; case sj::ondemand::number_type::unsigned_integer: {
+        uint64_t val = num.get_uint64();
+        ret[key] = SimpleValueType(val);
+      }
+      break; case sj::ondemand::number_type::floating_point_number: {
+        double val = num.get_double();
+        ret[key] = SimpleValueType(val);
+      }
+      break; default: assert(false);
+      }
+    }
+    break; case sj::ondemand::json_type::boolean: {
+      bool value; error = field.value().get(value);
+      if (error) continue;
+      ret[key] = SimpleValueType(value);
+    }
+    break; case sj::ondemand::json_type::null: {
+      ret[key] = SimpleValueType(nullptr);
+    }
+    break; default: assert(false);
+    }
+  }
+
   return ret;
 }
 
@@ -185,5 +242,9 @@ PYBIND11_MODULE(pybind11_example, m){
 
   m.def("parse_example_json2", &parse_example_json2, R"pbdoc(
           parse json using simdjson
+  )pbdoc");
+
+  m.def("parse_example_json3", &parse_example_json3, R"pbdoc(
+          parse json using simdjson and produce a map having variant value type
   )pbdoc");
 }
