@@ -9,7 +9,7 @@ __version__ = '0.0.1'
 ext_modules = [
     Pybind11Extension(
         "pybind11_example",
-        sorted(glob("src/*.cpp")),
+        sorted(glob("src/*.cpp")) + sorted(glob("src/*.cc")),
         define_macros = [('VERSION_INFO', __version__)]
     ),
 ]
@@ -34,6 +34,7 @@ setup(
           'test_datetime_to_epoch = senseis.test_datetime_to_epoch:main',
           'test_epoch_to_datetime = senseis.test_epoch_to_datetime:main',
           'test_json_parsing = senseis.test_json_parsing:main',
+          'test_format = senseis.test_format:main',
           'measure_summation = senseis.measure_summation:main',
           'measure_linear_regression = senseis.measure_linear_regression:main',
       ]

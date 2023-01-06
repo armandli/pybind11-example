@@ -11,6 +11,8 @@
 #include <sstream>
 #include <iostream>
 
+#include "fmt/core.h"
+#include "fmt/format.h"
 #include "date/date.h"
 #include "simdjson.h"
 #include "rapidjson/document.h"
@@ -24,6 +26,7 @@ namespace c = s::chrono;
 namespace d = date;
 namespace sj = simdjson;
 namespace rj = rapidjson;
+namespace f = fmt;
 
 using SimpleValueType = s::variant<s::string,double,int64_t,uint64_t,bool,s::nullptr_t>;
 
@@ -63,7 +66,7 @@ s::pair<float,float> linear_regression(const s::vector<float> x, const s::vector
 }
 
 //float is not accurate enough
-double datetime_to_epoch(s::string_view datetime_str, s::string_view format){
+double datetime_to_epoch(s::string datetime_str, s::string format){
   s::stringstream ss; ss << datetime_str;
   d::sys_time<c::milliseconds> ms;
   ss >> d::parse(format.data(), ms);
@@ -76,14 +79,14 @@ double datetime_to_epoch(s::string_view datetime_str, s::string_view format){
 }
 
 // by default it is timezone UTC
-s::string epoch_to_datetime(uint epoch, s::string_view format){
+s::string epoch_to_datetime(uint epoch, s::string format){
   d::sys_seconds tp = c::time_point_cast<c::seconds>(c::system_clock::from_time_t(epoch));
   s::string out = d::format(format.data(), tp);
   return out;
 }
 
 // use rapidjson
-s::unordered_map<s::string, s::vector<float>> parse_example_json1(s::string_view jstr){
+s::unordered_map<s::string, s::vector<float>> parse_example_json1(s::string jstr){
   s::unordered_map<s::string, s::vector<float>> ret;
   rj::Document document; document.Parse(jstr.data());
   for (rj::Value::ConstMemberIterator it = document.MemberBegin(); it != document.MemberEnd(); ++it){
@@ -204,6 +207,12 @@ s::unordered_map<s::string, SimpleValueType> parse_example_json3(const s::string
   return ret;
 }
 
+s::string cpp_format(s::string s, s::string name){
+  auto buffer = f::memory_buffer();
+  f::format_to(s::back_inserter(buffer), s, name);
+  return buffer.data();
+}
+
 PYBIND11_MODULE(pybind11_example, m){
   m.doc() = R"pbdoc(
           Pybind11 example plugin
@@ -246,5 +255,9 @@ PYBIND11_MODULE(pybind11_example, m){
 
   m.def("parse_example_json3", &parse_example_json3, R"pbdoc(
           parse json using simdjson and produce a map having variant value type
+  )pbdoc");
+
+  m.def("cpp_format", &cpp_format, R"pbdoc(
+          create a formated string
   )pbdoc");
 }
