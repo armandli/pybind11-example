@@ -210,7 +210,7 @@ s::unordered_map<s::string, SimpleValueType> parse_example_json3(const s::string
 s::string cpp_format(s::string s, s::string name){
   auto buffer = f::memory_buffer();
   f::format_to(s::back_inserter(buffer), s, name);
-  return buffer.data();
+  return f::to_string(buffer);
 }
 
 PYBIND11_MODULE(pybind11_example, m){
